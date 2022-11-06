@@ -1,12 +1,22 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+const i18n = require('./data/i18n');
+const utils = require('./data/utils');
 const TelegramBot = require('node-telegram-bot-api');
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_TELEGRAM_BOT_TOKEN';
 const NICKNAME = process.env.TELEGRAM_BOT_NICKNAME || 'YOUR_TELEGRAM_BOT_NICKNAME';
 const SQLITE_DB_PATH = process.env.SQLITE_DB_PATH || './db.sqlite3';
+const LOCALE = process.env.LOCALE || 'en-GB';
 
+if (!utils.isLocaleExists(LOCALE)) {
+    console.log("Used LOCALE doesn't exists! Bot was stopped!")
+    process.exit(1);
+}
+
+const Localizer = require('./data/utils').Localizer;
+const loc = new Localizer(LOCALE);
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = new Sequelize({
     dialect: 'sqlite',
@@ -44,7 +54,7 @@ class App {
             console.log(msg);
 
             if (msg.group_chat_created) {
-                this.bot.sendMessage(chatId, '\u{1F44B} Всем привет в новом чате! Что я умею: /help')
+                this.bot.sendMessage(chatId, '\u{1F44B} ' + loc.get(i18n.GREETING))
                     .catch(err => {
                         console.log("Couldn't send first message", err);
                     });
@@ -84,7 +94,7 @@ class App {
 
                     let chatTitle = msg.chat.title;
 
-                    let welcomeText = 'Добро пожаловать в чат "' + chatTitle + '", ' + newMembersStr + '!\n';
+                    let welcomeText = loc.get(i18n.WELCOME_TO_CHAT) + ' "' + chatTitle + '", ' + newMembersStr + '!\n';
                     let welcomeMessage = welcomeText + content;
 
                     return this.bot.sendMessage(chatId, welcomeMessage);
@@ -97,12 +107,12 @@ class App {
         const helpRegexp = new RegExp('^\/help(|@' + NICKNAME + ')$');
         this.bot.onText(helpRegexp, (msg, match) => {
             const chatId = msg.chat.id;
-            let helpMessage = "\u{1F7E2} <b>Зеленый бот для приветствия при добавлении в чат</b> \u{1F7E2}\n\n" +
-                "/start - запустить(перезапустить бота)\n" +
-                "/set_text TEXT - установить текст приветствия\n" +
-                "/get_text - напечатать текст приветствия\n" +
-                "/owner - узнать кто может редактировать приветствие\n" +
-                "/help напечатать это сообщение\n\n\u{270C}";
+            let helpMessage = "\u{1F7E2} <b>" + loc.get(i18n.HELP_HEADER) + "</b> \u{1F7E2}\n\n" +
+                "/start - " + loc.get(i18n.HELP_START) + "\n" +
+                "/set_text TEXT - " + loc.get(i18n.HELP_SET_TEXT) + "\n" +
+                "/get_text - " + loc.get(i18n.HELP_GET_TEXT) + "\n" +
+                "/owner - " + loc.get(i18n.HELP_OWNER) + "\n" +
+                "/help " + loc.get(i18n.HELP_HELP) + "\n\n\u{270C}";
 
             this.bot.sendMessage(chatId, helpMessage, {
                 parse_mode: 'html'
@@ -116,7 +126,7 @@ class App {
             this._getSubscription(chatId)
                 .then(sub => {
                     if (sub !== null) {
-                        this.bot.sendMessage(chatId, "Бот уже запущен.");
+                        this.bot.sendMessage(chatId, loc.get(i18n.BOT_LAUNCHED));
                         return;
                     }
 
@@ -126,11 +136,11 @@ class App {
                     this._registerNewChat(chatId, chatTitle, ownerId, ownerName)
                         .then((sub) => {
                             console.log(sub, "subscription recreated!");
-                            return this.bot.sendMessage(chatId, 'Я стартовал! Можете задать текст приветствия через команду /set_text приветствие.\nПодробнее о командах: /help');
+                            return this.bot.sendMessage(chatId, loc.get(i18n.STARTED_SUCCESSFULLY));
                         })
                         .catch((err) => {
                             console.log("Couldn't send first message", err);
-                            return this.bot.sendMessage(chatId, 'Что-то пошло не так. Попробуйте удалить бота из чата и добавить заново.');
+                            return this.bot.sendMessage(chatId, loc.get(i18n.STARTED_WITH_FAIL));
                         });
                 })
         });
@@ -142,7 +152,7 @@ class App {
             this._getSubscription(chatId)
                 .then(sub => {
                     let ownerName = sub['ownerName'];
-                    return this.bot.sendMessage(chatId, "Мой хозяин в этом чате: " + ownerName);
+                    return this.bot.sendMessage(chatId, loc.get(i18n.OWNER_TEXT) + ownerName);
                 })
                 .catch(err => {
                     console.log(err, "Error getting owner name");
@@ -156,13 +166,13 @@ class App {
             this._getSubscription(chatId)
                 .then(sub => {
                     if (sub === null) {
-                        this.bot.sendMessage(chatId, "К сожалению, что-то пошло не так\nПожалуйста вызовите команду /start и после этого задайте текст приветствия заново.");
+                        this.bot.sendMessage(chatId, loc.get(i18n.GET_TEXT_ERROR));
                         return;
                     }
 
                     let content = sub['message'];
                     if (!content) {
-                        return this.bot.sendMessage(chatId, "\u{1F6AB} *Текст приветствия не установлен*", {
+                        return this.bot.sendMessage(chatId, "\u{1F6AB} *" + loc.get(i18n.GET_TEXT_EMPTY) + "*", {
                             parse_mode: 'markdown'
                         })
                     }
@@ -179,7 +189,7 @@ class App {
             const chatId = msg.chat.id;
             let newWelcomeMessage = match[2];
             if (!newWelcomeMessage) {
-                this.bot.sendMessage(chatId, "\u{1F6AB} Невозможно установить пустое сообщение");
+                this.bot.sendMessage(chatId, "\u{1F6AB} " + loc.get(i18n.SET_TEXT_EMPTY));
                 return;
             }
 
@@ -198,7 +208,7 @@ class App {
     }
 
     _sendNoDataMessage(chatId) {
-        return this.bot.sendMessage(chatId, "\u{1F937} Я бы мог поприветствовать этого человека, но меня еще ничему не научили ");
+        return this.bot.sendMessage(chatId, "\u{1F937} " + loc.get(i18n.WELCOME_NO_DATA));
     }
 
     _setWelcomeMessageByChatId(chatId, requesterId, content) {
@@ -213,7 +223,7 @@ class App {
                     let ownerId = sub['ownerId'];
                     let ownerName = sub['ownerName'];
                     if (ownerId !== requesterId) {
-                        this.bot.sendMessage(chatId, 'Изменять приветствие может только тот, кто меня добавил.\nВ этот чат меня добавил ' + ownerName);
+                        this.bot.sendMessage(chatId, loc.get(i18n.SET_TEXT_PERMISSION_ERROR) + ' ' + ownerName);
                         reject();
                         return;
                     }
@@ -225,7 +235,7 @@ class App {
                             chatId: chatId
                         }
                     }).then(() => {
-                        this.bot.sendMessage(chatId, "\u{2705} Приветствие успешно обновлено!\n<b>Новое приветствие</b>:\n" + content, {
+                        this.bot.sendMessage(chatId, "\u{2705} " + loc.get(i18n.SET_TEXT_UPDATED_SUCCESSFULLY) + "\n<b>" + loc.get(i18n.SET_TEXT_NEW_TEXT) + "</b>:\n" + content, {
                             parse_mode: 'html'
                         }).then(() => {
                             resolve();
@@ -234,7 +244,7 @@ class App {
                             reject(err);
                         });
                     }).catch(err => {
-                        this.bot.sendMessage(chatId, "\u{274C} Не удалось обновить приветствие. Попробуйте выполнить команду еще раз.");
+                        this.bot.sendMessage(chatId, "\u{274C} " + loc.get(i18n.SET_TEXT_UPDATED_WITH_FAIL));
                         reject(err);
                     });
                 })
