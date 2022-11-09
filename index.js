@@ -90,7 +90,7 @@ class App {
                     }
                     let newMembersStr = msg.new_chat_members.map(member => {
                         return this._buildOwnerName(member);
-                    }).join(", ")
+                    }).join(", ");
 
                     let chatTitle = msg.chat.title;
 
@@ -117,7 +117,7 @@ class App {
             this.bot.sendMessage(chatId, helpMessage, {
                 parse_mode: 'html'
             });
-        })
+        });
 
         const startRegexp = new RegExp('^\/start(|@' + NICKNAME + ')$');
         this.bot.onText(startRegexp, (msg, match) => {
