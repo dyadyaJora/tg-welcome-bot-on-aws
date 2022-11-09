@@ -1,6 +1,10 @@
 const yargs = require('yargs');
-const { ECSClient, DescribeServicesCommand, DeleteServiceCommand } = require("@aws-sdk/client-ecs");
-
+const {
+    ECSClient,
+    DescribeServicesCommand,
+    DeleteServiceCommand,
+    UpdateServiceCommand
+} = require("@aws-sdk/client-ecs");
 
 const describeService = async (argv) => {
     const client = new ECSClient({ region: argv.region });
@@ -13,10 +17,27 @@ const describeService = async (argv) => {
     console.log(response);
 }
 
-const deployService = async () => {
+const updateWrapper = async (argv, desiredCount) => {
+    const client = new ECSClient({ region: argv.region });
+    const input = {
+        cluster: argv.cluster,
+        service: argv.serviceName,
+        desiredCount: desiredCount
+    }
+    const command = new UpdateServiceCommand(input);
+    const response = await client.send(command);
+    console.log(response);
 }
 
-const undeployService = async () => {
+const upService = async (argv) => {
+    await updateWrapper(argv, 1);
+}
+
+const downService = async (argv) => {
+    await updateWrapper(argv, 0);
+}
+
+const deleteService = async (argv) => {
     const client = new ECSClient({ region: argv.region });
     const input = {
         cluster: argv.cluster,
@@ -30,8 +51,9 @@ const undeployService = async () => {
 
 yargs(process.argv.splice(2))
     .command('describe', 'up fargate service', () => {}, describeService)
-    .command('deploy', 'up fargate service', () => {}, deployService)
-    .command('undeploy', 'down fargate service', () => {}, undeployService)
+    .command('up', 'up fargate service', () => {}, upService)
+    .command('down', 'down fargate service', () => {}, downService)
+    .command('delete', 'delete service', () => {}, deleteService)
     .strict()
     .option('c', {
         array: false,
