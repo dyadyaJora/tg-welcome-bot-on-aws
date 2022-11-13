@@ -104,8 +104,8 @@ class App {
                 });
         });
 
-        const helpRegexp = new RegExp('^\/help(|@' + NICKNAME + ')$');
-        this.bot.onText(helpRegexp, (msg, match) => {
+        const helpRegexp = new RegExp('^/help(|@' + NICKNAME + ')$');
+        this.bot.onText(helpRegexp, (msg) => {
             const chatId = msg.chat.id;
             let helpMessage = "\u{1F7E2} <b>" + loc.get(i18n.HELP_HEADER) + "</b> \u{1F7E2}\n\n" +
                 "/start - " + loc.get(i18n.HELP_START) + "\n" +
@@ -119,8 +119,8 @@ class App {
             });
         });
 
-        const startRegexp = new RegExp('^\/start(|@' + NICKNAME + ')$');
-        this.bot.onText(startRegexp, (msg, match) => {
+        const startRegexp = new RegExp('^/start(|@' + NICKNAME + ')$');
+        this.bot.onText(startRegexp, (msg) => {
             const chatId = msg.chat.id;
 
             this._getSubscription(chatId)
@@ -145,8 +145,8 @@ class App {
                 })
         });
 
-        const ownerRegexp = new RegExp('^\/owner(|@' + NICKNAME + ')$');
-        this.bot.onText(ownerRegexp, (msg, match) => {
+        const ownerRegexp = new RegExp('^/owner(|@' + NICKNAME + ')$');
+        this.bot.onText(ownerRegexp, (msg) => {
             const chatId = msg.chat.id;
 
             this._getSubscription(chatId)
@@ -159,8 +159,8 @@ class App {
                 })
         });
 
-        const getTextRegexp = new RegExp('^\/get_text(|@' + NICKNAME + ')$');
-        this.bot.onText(getTextRegexp, (msg, match) => {
+        const getTextRegexp = new RegExp('^/get_text(|@' + NICKNAME + ')$');
+        this.bot.onText(getTextRegexp, (msg) => {
             const chatId = msg.chat.id;
 
             this._getSubscription(chatId)
@@ -184,7 +184,7 @@ class App {
                 });
         });
 
-        const setTextRegexp = new RegExp('^\/set_text(|@' + NICKNAME + ') (((.*)|([\\n\\r]*))*)$');
+        const setTextRegexp = new RegExp('^/set_text(|@' + NICKNAME + ') (((.*)|([\\n\\r]*))*)$');
         this.bot.onText(setTextRegexp, (msg, match) => {
             const chatId = msg.chat.id;
             let newWelcomeMessage = match[2];
@@ -288,13 +288,13 @@ class App {
         let lastName = from.last_name;
         let username = from.username;
         let msgOwnerNameParts = [];
-        if (!!firstName) {
+        if (firstName) {
             msgOwnerNameParts.push(firstName);
         }
-        if (!!lastName) {
+        if (lastName) {
             msgOwnerNameParts.push(lastName);
         }
-        if (!!username) {
+        if (username) {
             msgOwnerNameParts.push('@' + username);
         }
 
